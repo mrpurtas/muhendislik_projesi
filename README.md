@@ -61,43 +61,8 @@ python -m src.app.main
 ## 📂 Proje Yapısı
 
 # Proje Yapısı
+<img width="600" alt="Ekran Resmi 2025-03-02 00 44 46" src="https://github.com/user-attachments/assets/55176650-ea5d-4e0f-b139-afde4f1b8688" />
 
-muhendislik_projesi/
-├── data/                        # Örnek veri dosyaları
-├── outputs/                     # Hesaplama çıktıları
-│   ├── graphs/                  # Otomatik kaydedilen grafikler (PNG/PDF)
-│   └── reports/                 # Üretilen raporlar (CSV/Excel)
-│
-├── src/                        # Kaynak kodları
-│   ├── app/                    # GUI ve ana uygulama
-│   │   ├── ui/                 # Kullanıcı arayüzü bileşenleri
-│   │   │   ├── __init__.py
-│   │   │   ├── main_window.py           # Ana pencere
-│   │   │   ├── reinforcement_dialog.py  # Donatı hesabı penceresi
-│   │   │   └── settings_dialog.py       # Ayarlar penceresi
-│   │   ├── __init__.py
-│   │   └── main.py             # Uygulama başlangıç noktası
-│   │
-│   ├── core/                   # Hesaplama motoru
-│   │   ├── calculations/       # Mühendislik algoritmaları
-│   │   │   ├── __init__.py
-│   │   │   ├── beam_calculation.py    # Kiriş hesaplamaları
-│   │   │   ├── load_types.py         # Yük kombinasyonları
-│   │   │   └── reinforcement.py      # Donatı optimizasyonu
-│   │   │
-│   │   ├── utils/              # Yardımcı fonksiyonlar
-│   │   │   ├── __init__.py
-│   │   │   └── file_io.py      # CSV/Excel okuma-yazma
-│   │   │
-│   │   └── __init__.py
-│   │
-│   └── tests/                  # Unit testler
-│       ├── __init__.py
-│       └── test_beam_calculation.py  # Kiriş test senaryoları
-│
-├── .gitignore                  # Git tarafından ignore edilecekler
-├── README.md                   # Proje dokümantasyonu
-└── requirements.txt            # Bağımlılıklar
 
 ### Dosya Açıklamaları
 
@@ -131,7 +96,7 @@ cd muhendislik_projesi
 git init
 git add .
 
-# İlk commit'i yapın
+# Commit'i yapın
 git commit -m "İlk commit: Mühendislik projesi"
 
 # Yeni uzak depoyu ekleyin
@@ -139,3 +104,15 @@ git remote add origin https://github.com/mrpurtas/muhendislik_projesi.git
 
 # Değişiklikleri push edin
 git push -u origin main
+
+#Değişiklikleri Çekmek (Pull)
+
+# Ana branch'a geçin
+git checkout main
+
+# Uzak depodaki son değişiklikleri çekin
+git pull origin main
+
+# Git kullanıcı bilgilerinizi ayarlayın
+git config --global user.name "Adınız Soyadınız"
+git config --global user.email "email@example.com"
