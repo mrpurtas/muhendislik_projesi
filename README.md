@@ -123,14 +123,19 @@ outputs/graphs/: Kaydedilen grafik dosyaları (.png formatında)
 outputs/reports/: Hesaplama sonuçlarını içeren CSV raporları
 
 
-## 👥 Katkıda Bulunma
+# Mevcut klasöre gidin
+cd muhendislik_projesi
 
-Forklayın ve depoyu klonlayın
+# Tüm dosyaları ekleyin
 
-Yeni bir branch oluşturun: git checkout -b feature/benim-ozelligim
+git init
+git add .
 
-Değişiklikleri commit edin: git commit -m 'Yeni özellik: ...'
+# İlk commit'i yapın
+git commit -m "İlk commit: Mühendislik projesi"
 
-Push işlemi yapın: git push origin feature/benim-ozelligim
+# Yeni uzak depoyu ekleyin
+git remote add origin https://github.com/mrpurtas/muhendislik_projesi.git
 
-Pull Request açın
+# Değişiklikleri push edin
+git push -u origin main
