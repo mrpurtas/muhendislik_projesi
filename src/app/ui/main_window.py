@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-                           QLineEdit, QPushButton, QLabel, QComboBox, QGroupBox, QProgressBar, QCheckBox)
+                           QLineEdit, QPushButton, QLabel, QComboBox, QGroupBox, QProgressBar, QCheckBox, QDialog)
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
@@ -72,6 +72,38 @@ class CalculationThread(QThread):
             
         except Exception as e:
             self.calculation_error.emit(str(e))
+
+class ScenarioCalculationThread(QThread):
+    calculation_complete = pyqtSignal(list)
+    calculation_error = pyqtSignal(str)
+    progress_update = pyqtSignal(int)
+    
+    def __init__(self, scenarios):
+        super().__init__()
+        self.scenarios = scenarios
+    
+    def run(self):
+        try:
+            results = []
+            total_scenarios = len(self.scenarios)
+            
+            for i, scenario in enumerate(self.scenarios):
+                # Her senaryo için hesaplama yap
+                result = self.calculate_scenario(scenario)
+                results.append(result)
+                
+                # İlerlemeyi güncelle
+                progress = int((i + 1) / total_scenarios * 100)
+                self.progress_update.emit(progress)
+            
+            self.calculation_complete.emit(results)
+            
+        except Exception as e:
+            self.calculation_error.emit(str(e))
+    
+    def calculate_scenario(self, scenario):
+        # TODO: Senaryo hesaplaması burada yapılacak
+        return {}
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -175,6 +207,11 @@ class MainWindow(QMainWindow):
         self.btn_reinforcement = QPushButton("Donatı Hesabı")
         self.btn_reinforcement.clicked.connect(self.show_reinforcement)
         button_layout.addWidget(self.btn_reinforcement)
+        
+        # Senaryo yönetimi butonu
+        self.btn_scenarios = QPushButton("Senaryo Yönetimi")
+        self.btn_scenarios.clicked.connect(self.show_scenarios)
+        button_layout.addWidget(self.btn_scenarios)
         
         layout.addLayout(button_layout)
         
@@ -428,3 +465,20 @@ class MainWindow(QMainWindow):
             
         except ValueError:
             self.result_label.setText("Hata: Lütfen tüm değerleri doğru formatta girin!")
+
+    def show_scenarios(self):
+        """Senaryo yönetimi penceresini göster"""
+        from src.app.ui.scenario_dialog import ScenarioDialog
+        dialog = ScenarioDialog(self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # Senaryo hesaplamalarını başlat
+            self.run_parallel_calculations()
+    
+    def run_parallel_calculations(self):
+        """Paralel hesaplamaları başlat"""
+        self.result_label.setText("Senaryo hesaplamaları başlatıldı...")
+        # İlerleme çubuğunu göster
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setValue(0)
+        
+        # TODO: Paralel hesaplama işlemleri burada yapılacak
