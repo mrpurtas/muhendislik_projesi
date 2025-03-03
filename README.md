@@ -195,11 +195,3 @@ Aşağıdaki görsel, uygulamanın temel klasör ve dosya yapısını göstermek
 3. Değişikliklerinizi yapın ve commit edin (örn. `git commit -am "Yeni özellik eklendi"`).  
 4. Dalınızı uzak depoya gönderin (örn. `git push origin yeni-ozellik`).  
 5. Bir **Pull Request** açarak yaptığınız değişikliklerin birleştirilmesini talep edin.
-
-
-
-
-
-
-
-
