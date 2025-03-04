@@ -121,7 +121,8 @@ def calculate_beam_analysis(length, load, width, height, concrete_class, load_ty
             "x_values": x_values,
             "moment_distribution": moment_distribution,
             "shear_distribution": shear_distribution,
-            "deflection_distribution": deflection_distribution
+            "deflection_distribution": deflection_distribution,
+            "load_type": load_type
         }
         
         # Donatı hesabı isteniyorsa ekle

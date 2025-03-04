@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-                           QLineEdit, QPushButton, QLabel, QComboBox, QGroupBox, QProgressBar, QCheckBox, QDialog, QTableWidget, QTableWidgetItem, QHeaderView, QTextEdit, QGridLayout)
+                           QLineEdit, QPushButton, QLabel, QComboBox, QGroupBox, QProgressBar, QCheckBox, QDialog, QTableWidget, QTableWidgetItem, QHeaderView, QTextEdit, QGridLayout, QTabWidget)
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
@@ -17,6 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 from src.app.ui.scenario_results_dialog import ScenarioResultsDialog
 from src.app.ui.scenario_dialog import ScenarioDialog
+from src.app.ui.visualization_3d import Beam3DVisualization
 
 class CalculationThread(QThread):
     calculation_complete = pyqtSignal(dict)
@@ -305,25 +306,33 @@ class MainWindow(QMainWindow):
         result_layout.addWidget(self.result_label)
         result_group.setLayout(result_layout)
         
-        # Grafik alanı - Minimum yükseklik ayarla
-        graph_group = QGroupBox("Grafik Sonuçları")
-        graph_layout = QVBoxLayout()
+        # Grafik ve sonuç alanı için tab widget oluştur
+        self.result_tabs = QTabWidget()
         
-        # Matplotlib figürü ve canvas
+        # 2D grafik sekmesi
+        graph_widget = QWidget()
+        graph_layout = QVBoxLayout(graph_widget)
+        
+        # Mevcut grafik kodunu buraya taşı
         self.figure = Figure(figsize=(8, 6), dpi=100)
         self.canvas = FigureCanvas(self.figure)
-        self.canvas.setMinimumHeight(400)  # Minimum yükseklik ayarla
+        self.canvas.setMinimumHeight(400)
         
         self.toolbar = NavigationToolbar(self.canvas, self)
         
         graph_layout.addWidget(self.toolbar)
         graph_layout.addWidget(self.canvas)
         
-        graph_group.setLayout(graph_layout)
+        # 3D görselleştirme sekmesi
+        self.visualization_3d = Beam3DVisualization()
         
-        # Ana layout'a ekle
+        # Sekmeleri ekle
+        self.result_tabs.addTab(graph_widget, "2D Grafikler")
+        self.result_tabs.addTab(self.visualization_3d, "3D Görünüm")
+        
+        # Ana layout'a tab widget'ı ekle (mevcut graph_group yerine)
         main_layout.addWidget(result_group)
-        main_layout.addWidget(graph_group)
+        main_layout.addWidget(self.result_tabs)
         
         # İlerleme çubuğu
         self.progress_bar = QProgressBar()
@@ -582,6 +591,21 @@ class MainWindow(QMainWindow):
         # Grafikleri çiz
         self.draw_graphs(results)
         
+        # 3D görselleştirmeyi güncelle
+        if hasattr(self, 'visualization_3d'):
+            self.visualization_3d.set_beam_data(
+                length=results["length"],
+                width=results["width"],
+                height=results["height"],
+                x_values=results.get("x_values"),
+                deflection=results.get("deflection_distribution"),
+                load_type=results.get("load_type", "Tekil Yük")
+            )
+            
+            # Donatı sonuçları varsa ekle
+            if "reinforcement" in results:
+                self.visualization_3d.set_reinforcement_data(results["reinforcement"])
+        
         # Sonuçları CSV'ye kaydet
         self.save_results_to_csv(results)
         
@@ -654,6 +678,10 @@ class MainWindow(QMainWindow):
         # Grafikleri temizle
         self.figure.clear()
         self.canvas.draw()
+        
+        # 3D görselleştirmeyi sıfırla
+        if hasattr(self, 'visualization_3d'):
+            self.visualization_3d.clear_visualization()
 
     def show_reinforcement(self):
         """Donatı hesabı penceresini göster"""
