@@ -1,0 +1,10 @@
+Parametre,Değer,Birim
+Kiriş Uzunluğu,5.0,m
+Yük,100.0,kN
+Kesit Genişliği,300.0,cm
+Kesit Yüksekliği,500.0,cm
+Beton Sınıfı,C20,
+Maksimum Moment,208.33333333333334,kNm
+Maksimum Kesme Kuvveti,33.333333333333336,kN
+Maksimum Sehim,0.0006153427245122996,mm
+Hesaplama Süresi,0.00020694732666015625,saniye

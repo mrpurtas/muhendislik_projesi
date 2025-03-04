@@ -1,0 +1,4 @@
+Senaryo,Kiriş Uzunluğu (m),Yük (kN),Kesit Genişliği (cm),Kesit Yüksekliği (cm),Maksimum Moment (kNm),Maksimum Kesme (kN),Maksimum Sehim (mm)
+Senaryo 1,5.0,10.0,30.0,50.0,25.0,10.0,2.5431315104166665
+Senaryo 2,6.0,15.0,35.0,55.0,45.0,15.0,6.591796875
+Senaryo 3,7.0,20.0,40.0,60.0,70.0,20.0,13.956705729166666

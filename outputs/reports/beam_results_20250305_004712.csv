@@ -1,0 +1,26 @@
+Parametre,Değer,Birim
+Kiriş Uzunluğu,5.0,m
+Yük,100.0,kN
+Kesit Genişliği,30.0,cm
+Kesit Yüksekliği,50.0,cm
+Beton Sınıfı,C20,
+Maksimum Moment,125.0,kNm
+Maksimum Kesme Kuvveti,50.0,kN
+Maksimum Sehim,3.076713622561499,mm
+Hesaplama Süresi,0.00013184547424316406,saniye
+,,
+Donatı Hesabı Sonuçları,,
+Minimum Donatı Alanı,270.0,mm²
+Gerekli Donatı Alanı,705.9808613604497,mm²
+,,
+Donatı Seçenekleri,,
+Seçenek 1,9 adet Ø10 mm,"Alan: 706.86 mm², Aralık: 25.0 mm"
+Seçenek 2,7 adet Ø12 mm,"Alan: 791.68 mm², Aralık: 33.3 mm"
+Seçenek 3,5 adet Ø14 mm,"Alan: 769.69 mm², Aralık: 50.0 mm"
+Seçenek 4,4 adet Ø16 mm,"Alan: 804.25 mm², Aralık: 66.7 mm"
+Seçenek 5,3 adet Ø18 mm,"Alan: 763.41 mm², Aralık: 100.0 mm"
+Seçenek 6,3 adet Ø20 mm,"Alan: 942.48 mm², Aralık: 100.0 mm"
+Seçenek 7,2 adet Ø22 mm,"Alan: 760.27 mm², Aralık: 200.0 mm"
+Seçenek 8,2 adet Ø25 mm,"Alan: 981.75 mm², Aralık: 200.0 mm"
+Seçenek 9,2 adet Ø28 mm,"Alan: 1231.50 mm², Aralık: 200.0 mm"
+Seçenek 10,1 adet Ø32 mm,"Alan: 804.25 mm², Aralık: 0.0 mm"
