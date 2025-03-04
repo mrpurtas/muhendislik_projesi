@@ -1,5 +1,7 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QSlider, QLabel, QComboBox
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
+                           QSlider, QLabel, QComboBox, QGroupBox, QGridLayout, QSizePolicy)
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
@@ -30,92 +32,157 @@ class Beam3DVisualization(QWidget):
         # Toolbar
         self.toolbar = NavigationToolbar(self.canvas, self)
         
-        # Daha iyi düzenlenmiş kontrol paneli
-        control_layout = QHBoxLayout()
+        # Kontrol paneli için grup kutusu
+        control_group = QGroupBox("Görselleştirme Kontrolleri")
+        control_grid = QGridLayout(control_group)
         
-        # Sol kontrol grubu
-        left_controls = QVBoxLayout()
-        left_controls.addWidget(QLabel("<b>Görünüm Ayarları</b>"))
+        # Görünüm ayarları grubu
+        view_group = QGroupBox("Görünüm Ayarları")
+        view_layout = QGridLayout(view_group)
         
         # Görünüm seçenekleri
-        view_layout = QHBoxLayout()
-        view_layout.addWidget(QLabel("Görünüm:"))
+        view_layout.addWidget(QLabel("Görünüm:"), 0, 0)
         self.view_combo = QComboBox()
         self.view_combo.addItems(["İzometrik", "Üstten", "Yandan", "Önden", "Serbest"])
         self.view_combo.currentIndexChanged.connect(self.change_view)
-        view_layout.addWidget(self.view_combo)
-        left_controls.addLayout(view_layout)
+        self.view_combo.setMinimumWidth(120)
+        view_layout.addWidget(self.view_combo, 0, 1)
         
         # Deformasyon ölçeği
+        view_layout.addWidget(QLabel("Deformasyon:"), 1, 0)
         scale_layout = QHBoxLayout()
-        scale_layout.addWidget(QLabel("Deformasyon:"))
         self.scale_slider = QSlider(Qt.Orientation.Horizontal)
         self.scale_slider.setMinimum(1)
         self.scale_slider.setMaximum(100)
         self.scale_slider.setValue(20)
-        self.scale_slider.valueChanged.connect(self.update_visualization)
+        self.scale_slider.valueChanged.connect(self.update_scale_label)
         scale_layout.addWidget(self.scale_slider)
         self.scale_value = QLabel("2.0")
+        self.scale_value.setMinimumWidth(30)
         scale_layout.addWidget(self.scale_value)
-        left_controls.addLayout(scale_layout)
+        view_layout.addLayout(scale_layout, 1, 1)
         
-        # Sağ kontrol grubu
-        right_controls = QVBoxLayout()
-        right_controls.addWidget(QLabel("<b>Görselleştirme Seçenekleri</b>"))
+        # Görselleştirme seçenekleri grubu
+        options_group = QGroupBox("Görselleştirme Seçenekleri")
+        options_layout = QGridLayout(options_group)
         
-        # Donatı ve kesit görünümü
-        options_layout = QHBoxLayout()
-        self.show_reinforcement = QPushButton("Donatılar")
+        # Butonlar için stil tanımla
+        button_style = """
+        QPushButton {
+            background-color: #f0f0f0;
+            border: 1px solid #c0c0c0;
+            border-radius: 4px;
+            padding: 5px;
+            min-height: 25px;
+        }
+        QPushButton:checked {
+            background-color: #a0d0ff;
+            border: 1px solid #0078d7;
+        }
+        QPushButton:hover {
+            background-color: #e0e0e0;
+        }
+        """
+        
+        # Donatı görünümü
+        self.show_reinforcement = QPushButton("Donatıları Göster")
         self.show_reinforcement.setCheckable(True)
         self.show_reinforcement.clicked.connect(self.update_visualization)
-        options_layout.addWidget(self.show_reinforcement)
+        self.show_reinforcement.setStyleSheet(button_style)
+        options_layout.addWidget(self.show_reinforcement, 0, 0)
         
-        self.show_section = QPushButton("Kesit")
+        # Kesit görünümü
+        self.show_section = QPushButton("Kesit Göster")
         self.show_section.setCheckable(True)
         self.show_section.clicked.connect(self.toggle_section_view)
-        options_layout.addWidget(self.show_section)
+        self.show_section.setStyleSheet(button_style)
+        options_layout.addWidget(self.show_section, 0, 1)
         
+        # Kesit pozisyonu slider'ı
+        section_layout = QHBoxLayout()
+        section_layout.addWidget(QLabel("Kesit Pozisyonu:"))
+        self.section_slider = QSlider(Qt.Orientation.Horizontal)
+        self.section_slider.setMinimum(0)
+        self.section_slider.setMaximum(100)
+        self.section_slider.setValue(50)
+        self.section_slider.valueChanged.connect(self.update_visualization)
+        self.section_slider.setEnabled(False)  # Başlangıçta devre dışı
+        section_layout.addWidget(self.section_slider)
+        options_layout.addLayout(section_layout, 1, 0, 1, 2)
+        
+        # Animasyon butonu
         self.animate_button = QPushButton("Animasyon")
         self.animate_button.setCheckable(True)
         self.animate_button.clicked.connect(self.toggle_animation)
-        options_layout.addWidget(self.animate_button)
+        self.animate_button.setStyleSheet(button_style)
+        options_layout.addWidget(self.animate_button, 2, 0)
         
         # Gerilme görünümü
-        stress_layout = QHBoxLayout()
-        stress_layout.addWidget(QLabel("Gerilme:"))
+        options_layout.addWidget(QLabel("Gerilme Görünümü:"), 2, 1)
         self.stress_combo = QComboBox()
         self.stress_combo.addItems(["Gösterme", "Moment", "Kesme Kuvveti"])
         self.stress_combo.currentIndexChanged.connect(self.update_visualization)
-        stress_layout.addWidget(self.stress_combo)
+        options_layout.addWidget(self.stress_combo, 3, 1)
+        
+        # Sıfırla butonu
+        self.reset_button = QPushButton("Sıfırla")
+        self.reset_button.clicked.connect(self.reset_visualization)
+        self.reset_button.setStyleSheet(button_style)
+        options_layout.addWidget(self.reset_button, 3, 0)
         
         # Görünüm kaydetme butonu
         self.save_button = QPushButton("Görünümü Kaydet")
         self.save_button.clicked.connect(self.save_view)
-        control_layout.addWidget(self.save_button)
+        self.save_button.setStyleSheet(button_style)
+        options_layout.addWidget(self.save_button, 4, 0, 1, 2)
         
-        # Kontrol gruplarını ana kontrol paneline ekle
-        control_layout.addLayout(left_controls, 1)
-        control_layout.addLayout(right_controls, 1)
+        # Kontrol grid'ine grupları ekle
+        control_grid.addWidget(view_group, 0, 0)
+        control_grid.addWidget(options_group, 0, 1)
         
         # Layout'a widget'ları ekle
         main_layout.addWidget(self.toolbar)
         main_layout.addWidget(self.canvas)
-        main_layout.addLayout(control_layout)
+        main_layout.addWidget(control_group)
         
         # Veri değişkenleri
         self.beam_data = None
         self.reinforcement_data = None
         
-        # Başlangıç görünümü
-        self.clear_visualization()
-        
         # Animasyon için değişkenler
         self.animation = None
         self.is_animating = False
         
-        # Slider değeri değiştiğinde etiketi güncelle
-        self.scale_slider.valueChanged.connect(self.update_scale_label)
+        # Başlangıç görünümü
+        self.clear_visualization()
         
+    def reset_visualization(self):
+        """Görselleştirmeyi sıfırla"""
+        # Butonları sıfırla
+        self.show_reinforcement.setChecked(False)
+        self.show_section.setChecked(False)
+        self.animate_button.setChecked(False)
+        self.section_slider.setEnabled(False)
+        self.stress_combo.setCurrentIndex(0)
+        
+        # Ölçeği varsayılana ayarla
+        self.scale_slider.setValue(20)
+        
+        # Görünümü sıfırla
+        self.view_combo.setCurrentIndex(0)  # İzometrik görünüm
+        
+        # Animasyonu durdur
+        if self.is_animating:
+            self.toggle_animation()
+        
+        # Görselleştirmeyi güncelle
+        self.update_visualization()
+    
+    def update_scale_label(self, value):
+        """Ölçek değeri etiketini güncelle"""
+        self.scale_value.setText(f"{value/10:.1f}")
+        self.update_visualization()
+    
     def set_beam_data(self, length, width, height, x_values=None, deflection=None, load_type=None):
         """Kiriş verilerini ayarla"""
         self.beam_data = {
@@ -127,12 +194,12 @@ class Beam3DVisualization(QWidget):
             'load_type': load_type
         }
         self.update_visualization()
-        
-    def set_reinforcement_data(self, reinforcement):
+    
+    def set_reinforcement_data(self, reinforcement_data):
         """Donatı verilerini ayarla"""
-        self.reinforcement_data = reinforcement
+        self.reinforcement_data = reinforcement_data
         self.update_visualization()
-        
+    
     def clear_visualization(self):
         """Görselleştirmeyi temizle"""
         self.ax.clear()
@@ -140,8 +207,14 @@ class Beam3DVisualization(QWidget):
         self.ax.set_ylabel('Genişlik (cm)')
         self.ax.set_zlabel('Yükseklik (cm)')
         self.ax.set_title('3D Kiriş Görünümü')
+        self.ax.text(0.5, 0.5, 0.5, "Hesaplama sonuçları burada görüntülenecek", 
+                    horizontalalignment='center', verticalalignment='center')
         self.canvas.draw()
         
+        # Veri değişkenlerini sıfırla
+        self.beam_data = None
+        self.reinforcement_data = None
+    
     def update_visualization(self):
         """Görselleştirmeyi güncelle"""
         self.ax.clear()
@@ -185,7 +258,7 @@ class Beam3DVisualization(QWidget):
         
         # Yan yüzeyler - Daha iyi görünüm
         y_min, y_max = -width/2, width/2
-        for x_idx in range(0, len(x_values), 5):  # Her 10 yerine her 5 noktada bir yan yüzey
+        for x_idx in range(0, len(x_values), 5):  # Her 5 noktada bir yan yüzey
             x = x_values[x_idx]
             xs = [x, x, x, x, x]
             ys = [y_min, y_max, y_max, y_min, y_min]
@@ -193,26 +266,15 @@ class Beam3DVisualization(QWidget):
                         Z_top[-1, x_idx], Z_top[0, x_idx], Z_bottom[0, x_idx]]
             self.ax.plot(xs, ys, zs_bottom, 'k-', alpha=0.5, linewidth=1.5)
         
-        # Ön ve arka yüzeyler
-        for y_idx in [0, -1]:  # İlk ve son y değeri
-            y = [-width/2, width/2][y_idx]
-            xs = x_values
-            ys = [y] * len(x_values)
-            zs_bottom = Z_bottom[y_idx, :]
-            zs_top = Z_top[y_idx, :]
-            self.ax.plot(xs, ys, zs_bottom, 'k-', alpha=0.3)
-            self.ax.plot(xs, ys, zs_top, 'k-', alpha=0.3)
-        
-        # Donatıları göster
-        if self.show_reinforcement.isChecked() and self.reinforcement_data is not None:
+        # Donatıları çiz
+        if self.show_reinforcement.isChecked() and self.reinforcement_data:
             self.draw_reinforcement()
         
         # Yük tipini göster
-        if self.beam_data.get('load_type'):
-            self.draw_load_type()
+        self.draw_load_type()
         
         # Kesit görünümü
-        if self.show_section.isChecked() and self.beam_data is not None:
+        if self.show_section.isChecked():
             # Kesit pozisyonu
             section_pos = self.section_slider.value() / 100.0 * length
             section_idx = np.argmin(np.abs(x_values - section_pos))
@@ -241,7 +303,7 @@ class Beam3DVisualization(QWidget):
         
         # Gerilme dağılımı
         stress_type = self.stress_combo.currentText()
-        if stress_type != "Gösterme" and self.beam_data is not None:
+        if stress_type != "Gösterme":
             # Gerilme değerlerini al
             if stress_type == "Moment":
                 stress_values = self.beam_data.get('moment_distribution', np.zeros_like(x_values))
@@ -277,17 +339,13 @@ class Beam3DVisualization(QWidget):
             cbar = self.figure.colorbar(sm, ax=self.ax, shrink=0.5, aspect=5, 
                                       label=stress_label)
         
-        # Eksen etiketleri
+        # Eksen etiketleri ve başlık
         self.ax.set_xlabel('Uzunluk (m)')
         self.ax.set_ylabel('Genişlik (cm)')
         self.ax.set_zlabel('Yükseklik (cm)')
         self.ax.set_title('3D Kiriş Görünümü')
         
-        # Görünüm sınırları
-        self.ax.set_xlim(0, length)
-        self.ax.set_ylim(-width/2, width/2)
-        self.ax.set_zlim(-height/2 - 10, height/2 + 10)
-        
+        # Görünümü güncelle
         self.canvas.draw()
         
     def draw_reinforcement(self):
@@ -507,10 +565,6 @@ class Beam3DVisualization(QWidget):
             self.animation = None
         
         # Normal görünüme dön
-        self.update_visualization()
-
-    def update_scale_label(self, value):
-        self.scale_value.setText(f"{value/10:.1f}")
         self.update_visualization()
 
     def save_view(self):
