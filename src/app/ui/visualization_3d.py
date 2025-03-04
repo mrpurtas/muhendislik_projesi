@@ -6,6 +6,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -163,7 +164,7 @@ class Beam3DVisualization(QWidget):
         self.show_section.setChecked(False)
         self.animate_button.setChecked(False)
         self.section_slider.setEnabled(False)
-        self.stress_combo.setCurrentIndex(0)
+        self.stress_combo.setCurrentIndex(0)  # "Gösterme" seçeneğine ayarla
         
         # Ölçeği varsayılana ayarla
         self.scale_slider.setValue(20)
@@ -175,8 +176,32 @@ class Beam3DVisualization(QWidget):
         if self.is_animating:
             self.toggle_animation()
         
-        # Görselleştirmeyi güncelle
-        self.update_visualization()
+        # Orijinal veriyi koruyarak görselleştirmeyi güncelle
+        if self.beam_data is not None:
+            # Orijinal veriyi yedekle
+            original_data = self.beam_data.copy()
+            
+            # Görselleştirmeyi güncelle
+            self.update_visualization()
+            
+            # Eksen sınırlarını ayarla - Kiriş boyutlarına göre
+            length = original_data['length']
+            width = original_data['width']
+            height = original_data['height']
+            
+            # Eksen sınırlarını ayarla
+            self.ax.set_xlim(0, length)
+            self.ax.set_ylim(-width/2, width/2)
+            self.ax.set_zlim(-height/2 - 10, height/2 + 10)
+            
+            # İzometrik görünüm
+            self.ax.view_init(elev=30, azim=45)
+            
+            # Canvas'ı güncelle
+            self.canvas.draw()
+        else:
+            # Veri yoksa temizle
+            self.clear_visualization()
     
     def update_scale_label(self, value):
         """Ölçek değeri etiketini güncelle"""
@@ -217,6 +242,7 @@ class Beam3DVisualization(QWidget):
     
     def update_visualization(self):
         """Görselleştirmeyi güncelle"""
+        # Önceki tüm çizimleri temizle
         self.ax.clear()
         
         if self.beam_data is None:
@@ -233,8 +259,8 @@ class Beam3DVisualization(QWidget):
         # Deformasyon ölçeği
         scale_factor = self.scale_slider.value() / 10.0
         
-        # Kiriş mesh'i oluştur - Daha yüksek çözünürlük
-        X, Y = np.meshgrid(x_values, np.linspace(-width/2, width/2, 30))  # 20 yerine 30 nokta
+        # Kiriş mesh'i oluştur
+        X, Y = np.meshgrid(x_values, np.linspace(-width/2, width/2, 30))
         Z_bottom = np.zeros_like(X) - height/2
         Z_top = np.zeros_like(X) + height/2
         
@@ -246,19 +272,128 @@ class Beam3DVisualization(QWidget):
             Z_bottom = Z_bottom + deflection_2d * scale_factor * 100  # cm'ye çevir
             Z_top = Z_top + deflection_2d * scale_factor * 100  # cm'ye çevir
         
-        # Kiriş yüzeylerini çiz - Daha iyi renk haritası ve kenar çizgileri
-        # Alt yüzey
-        surf_bottom = self.ax.plot_surface(X, Y, Z_bottom, alpha=0.8, 
-                                          cmap=cm.viridis, linewidth=0.5, 
-                                          antialiased=True, edgecolor='k')
-        # Üst yüzey
-        surf_top = self.ax.plot_surface(X, Y, Z_top, alpha=0.8, 
-                                       cmap=cm.viridis, linewidth=0.5, 
-                                       antialiased=True, edgecolor='k')
+        # Gerilme dağılımı
+        stress_type = self.stress_combo.currentText()
+        stress_values = None
         
-        # Yan yüzeyler - Daha iyi görünüm
+        if stress_type != "Gösterme":
+            # Gerilme değerlerini al
+            if stress_type == "Moment":
+                stress_values = self.beam_data.get('moment_distribution', np.zeros_like(x_values))
+                stress_label = "Moment (kNm)"
+            else:  # Kesme Kuvveti
+                stress_values = self.beam_data.get('shear_distribution', np.zeros_like(x_values))
+                stress_label = "Kesme Kuvveti (kN)"
+            
+            # Normalize edilmiş gerilme değerleri (renk haritası için)
+            if np.max(np.abs(stress_values)) > 0:
+                norm_stress = stress_values / np.max(np.abs(stress_values))
+            else:
+                norm_stress = np.zeros_like(stress_values)
+        
+        # Kiriş yüzeylerini çiz
         y_min, y_max = -width/2, width/2
-        for x_idx in range(0, len(x_values), 5):  # Her 5 noktada bir yan yüzey
+        
+        if stress_values is not None:
+            # Gerilme renklerini uygula
+            stress_colors = plt.cm.jet(0.5 + 0.5 * norm_stress)
+            
+            # Kiriş yüzeylerini gerilme renkleriyle çiz
+            for i in range(len(x_values)-1):
+                x = x_values[i]
+                x_next = x_values[i+1]
+                color = stress_colors[i]
+                
+                # Alt ve üst yüzeyler
+                for j in range(Y.shape[0]-1):
+                    y = Y[j, 0]
+                    y_next = Y[j+1, 0]
+                    
+                    # Alt yüzey
+                    verts_bottom = [
+                        (x, y, Z_bottom[j, i]),
+                        (x_next, y, Z_bottom[j, i+1]),
+                        (x_next, y_next, Z_bottom[j+1, i+1]),
+                        (x, y_next, Z_bottom[j+1, i])
+                    ]
+                    poly_bottom = Poly3DCollection([verts_bottom], alpha=0.7)
+                    poly_bottom.set_facecolor(color)
+                    self.ax.add_collection3d(poly_bottom)
+                    
+                    # Üst yüzey
+                    verts_top = [
+                        (x, y, Z_top[j, i]),
+                        (x_next, y, Z_top[j, i+1]),
+                        (x_next, y_next, Z_top[j+1, i+1]),
+                        (x, y_next, Z_top[j+1, i])
+                    ]
+                    poly_top = Poly3DCollection([verts_top], alpha=0.7)
+                    poly_top.set_facecolor(color)
+                    self.ax.add_collection3d(poly_top)
+                
+                # Yan yüzeyler (ön ve arka)
+                verts_front = [
+                    (x, y_min, Z_bottom[0, i]),
+                    (x_next, y_min, Z_bottom[0, i+1]),
+                    (x_next, y_min, Z_top[0, i+1]),
+                    (x, y_min, Z_top[0, i])
+                ]
+                poly_front = Poly3DCollection([verts_front], alpha=0.7)
+                poly_front.set_facecolor(color)
+                self.ax.add_collection3d(poly_front)
+                
+                verts_back = [
+                    (x, y_max, Z_bottom[-1, i]),
+                    (x_next, y_max, Z_bottom[-1, i+1]),
+                    (x_next, y_max, Z_top[-1, i+1]),
+                    (x, y_max, Z_top[-1, i])
+                ]
+                poly_back = Poly3DCollection([verts_back], alpha=0.7)
+                poly_back.set_facecolor(color)
+                self.ax.add_collection3d(poly_back)
+            
+            # Sol ve sağ yan yüzeyler
+            left_color = stress_colors[0]
+            right_color = stress_colors[-1]
+            
+            for j in range(Y.shape[0]-1):
+                y = Y[j, 0]
+                y_next = Y[j+1, 0]
+                
+                # Sol yüzey
+                verts_left = [
+                    (x_values[0], y, Z_bottom[j, 0]),
+                    (x_values[0], y_next, Z_bottom[j+1, 0]),
+                    (x_values[0], y_next, Z_top[j+1, 0]),
+                    (x_values[0], y, Z_top[j, 0])
+                ]
+                poly_left = Poly3DCollection([verts_left], alpha=0.7)
+                poly_left.set_facecolor(left_color)
+                self.ax.add_collection3d(poly_left)
+                
+                # Sağ yüzey
+                verts_right = [
+                    (x_values[-1], y, Z_bottom[j, -1]),
+                    (x_values[-1], y_next, Z_bottom[j+1, -1]),
+                    (x_values[-1], y_next, Z_top[j+1, -1]),
+                    (x_values[-1], y, Z_top[j, -1])
+                ]
+                poly_right = Poly3DCollection([verts_right], alpha=0.7)
+                poly_right.set_facecolor(right_color)
+                self.ax.add_collection3d(poly_right)
+        else:
+            # Normal görünüm - Renk haritası ile
+            # Alt yüzey
+            surf_bottom = self.ax.plot_surface(X, Y, Z_bottom, alpha=0.8, 
+                                              cmap=cm.viridis, linewidth=0.5, 
+                                              antialiased=True, edgecolor='k')
+            # Üst yüzey
+            surf_top = self.ax.plot_surface(X, Y, Z_top, alpha=0.8, 
+                                           cmap=cm.viridis, linewidth=0.5, 
+                                           antialiased=True, edgecolor='k')
+        
+        # Yan yüzeyler
+        for x_idx in range(0, len(x_values), 5):
             x = x_values[x_idx]
             xs = [x, x, x, x, x]
             ys = [y_min, y_max, y_max, y_min, y_min]
@@ -282,11 +417,10 @@ class Beam3DVisualization(QWidget):
             # Kesit düzlemi
             x_section = x_values[section_idx]
             y_section = np.linspace(-width/2, width/2, 20)
-            z_bottom_section = Z_bottom[:, section_idx]
-            z_top_section = Z_top[:, section_idx]
             
             # Kesit çizgisi
-            self.ax.plot([x_section, x_section], [y_min, y_max], [Z_bottom[0, section_idx], Z_bottom[-1, section_idx]], 
+            self.ax.plot([x_section, x_section], [y_min, y_max], 
+                        [Z_bottom[0, section_idx], Z_bottom[-1, section_idx]], 
                         'r-', linewidth=3, label='Kesit')
             
             # Kesit düzlemi
@@ -301,49 +435,30 @@ class Beam3DVisualization(QWidget):
             self.ax.text(x_section, 0, height/2 + 5, f"Kesit: {x_section:.2f} m", 
                         color='red', horizontalalignment='center')
         
-        # Gerilme dağılımı
-        stress_type = self.stress_combo.currentText()
-        if stress_type != "Gösterme":
-            # Gerilme değerlerini al
-            if stress_type == "Moment":
-                stress_values = self.beam_data.get('moment_distribution', np.zeros_like(x_values))
-                stress_label = "Moment (kNm)"
-            else:  # Kesme Kuvveti
-                stress_values = self.beam_data.get('shear_distribution', np.zeros_like(x_values))
-                stress_label = "Kesme Kuvveti (kN)"
+        # Renk çubuğu (gerilme görünümü için)
+        if stress_values is not None:
+            # Önceki renk çubuklarını temizle
+            if hasattr(self, 'colorbar') and self.colorbar is not None:
+                self.colorbar.remove()
             
-            # Normalize edilmiş gerilme değerleri (renk haritası için)
-            if np.max(np.abs(stress_values)) > 0:
-                norm_stress = stress_values / np.max(np.abs(stress_values))
-            else:
-                norm_stress = np.zeros_like(stress_values)
-            
-            # Gerilme renklerini uygula
-            stress_colors = plt.cm.jet(0.5 + 0.5 * norm_stress)
-            
-            # Kiriş üzerinde gerilme dağılımını göster
-            for i in range(len(x_values)-1):
-                x = x_values[i]
-                x_next = x_values[i+1]
-                color = stress_colors[i]
-                
-                # Üst yüzeyde gerilme çizgisi
-                self.ax.plot([x, x_next], [0, 0], [Z_top[10, i], Z_top[10, i+1]], 
-                            color=color, linewidth=5)
-            
-            # Renk çubuğu
+            # Renk çubuğunu ekle
             sm = plt.cm.ScalarMappable(cmap=plt.cm.jet, 
                                       norm=plt.Normalize(vmin=np.min(stress_values), 
                                                        vmax=np.max(stress_values)))
             sm.set_array([])
-            cbar = self.figure.colorbar(sm, ax=self.ax, shrink=0.5, aspect=5, 
-                                      label=stress_label)
+            self.colorbar = self.figure.colorbar(sm, ax=self.ax, shrink=0.5, aspect=5, 
+                                               label=stress_label)
         
         # Eksen etiketleri ve başlık
         self.ax.set_xlabel('Uzunluk (m)')
         self.ax.set_ylabel('Genişlik (cm)')
         self.ax.set_zlabel('Yükseklik (cm)')
         self.ax.set_title('3D Kiriş Görünümü')
+        
+        # Eksen sınırlarını ayarla
+        self.ax.set_xlim(0, length)
+        self.ax.set_ylim(-width/2, width/2)
+        self.ax.set_zlim(-height/2 - 10, height/2 + 10)
         
         # Görünümü güncelle
         self.canvas.draw()
@@ -530,6 +645,9 @@ class Beam3DVisualization(QWidget):
             x_values = self.beam_data['x_values']
             deflection = self.beam_data['deflection']
             
+            # Önceki çizimleri temizle
+            self.ax.clear()
+            
             # Kiriş mesh'i güncelle
             X, Y = np.meshgrid(x_values, np.linspace(-width/2, width/2, 20))
             Z_bottom = np.zeros_like(X) - height/2
@@ -541,15 +659,17 @@ class Beam3DVisualization(QWidget):
                 Z_bottom = Z_bottom + deflection_2d * scale * 100
                 Z_top = Z_top + deflection_2d * scale * 100
             
-            # Yüzeyleri güncelle
-            for collection in self.ax.collections:
-                collection.remove()
-            
             # Alt ve üst yüzeyleri çiz
             self.ax.plot_surface(X, Y, Z_bottom, alpha=0.7, 
                                 cmap=cm.coolwarm, linewidth=0, antialiased=True)
             self.ax.plot_surface(X, Y, Z_top, alpha=0.7, 
                                 cmap=cm.coolwarm, linewidth=0, antialiased=True)
+            
+            # Eksen etiketleri
+            self.ax.set_xlabel('Uzunluk (m)')
+            self.ax.set_ylabel('Genişlik (cm)')
+            self.ax.set_zlabel('Yükseklik (cm)')
+            self.ax.set_title('3D Kiriş Animasyonu')
             
             self.canvas.draw()
         
